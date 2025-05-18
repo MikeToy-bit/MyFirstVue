@@ -1,12 +1,14 @@
 import { createRouter, createWebHistory } from "vue-router";
-import Login from "../views/Login.vue";
+import login from "../views/login.vue";
 import Main from "../views/main.vue";
-import Dashboard from "../views/Dashboard.vue";
-import Users from "../views/Users.vue";
-import UserAdd from "../views/UserAdd.vue";
-import Settings from "../views/Settings.vue";
-import Security from "../views/Security.vue";
-import CommonDemo from "../views/examples/CommonDemo.vue";
+import Dashboard from "../views/dashboard.vue";
+import Users from "../views/user/user-list.vue";
+import UserAdd from "../views/user/user-add.vue";
+import Settings from "../views/settings.vue";
+import Security from "../views/security.vue";
+import CommonDemo from "../views/examples/common-demo.vue";
+import DictionaryList from "../views/dictionary/dictionary-list.vue";
+import DictionaryAdd from "../views/dictionary/dictionary-add.vue";
 import { useUserStore } from "../stores/user";
 import { ElMessage } from "element-plus";
 
@@ -25,45 +27,75 @@ const isTokenExpired = (token) => {
 const routes = [
     {
         path: "/",
-        name: "Login",
-        component: Login,
+        name: "login",
+        component: login,
         meta: { requiresAuth: false },
     },
     {
         path: "/main",
-        name: "Main",
+        name: "main",
         component: Main,
         meta: { requiresAuth: true },
         children: [
             {
                 path: "dashboard",
-                name: "Dashboard",
+                name: "dashboard",
                 component: Dashboard,
             },
             {
-                path: "users",
-                name: "Users",
+                path: "user-list",
+                name: "user-list",
                 component: Users,
             },
             {
-                path: "user/add",
-                name: "UserAdd",
+                path: "user-add",
+                name: "user-add",
                 component: UserAdd,
             },
             {
                 path: "settings",
-                name: "Settings",
+                name: "settings",
                 component: Settings,
             },
             {
                 path: "security",
-                name: "Security",
+                name: "security",
                 component: Security,
             },
             {
-                path: "CommonDemo",
-                name: "CommonDemo",
+                path: "common-demo",
+                name: "common-demo",
                 component: CommonDemo,
+            },
+            {
+                path: "dictionary-list",
+                name: "dictionary-list",
+                component: DictionaryList,
+            },
+            {
+                path: "dictionary-add",
+                name: "dictionary-add",
+                component: DictionaryAdd,
+            },
+            {
+                path: "dictionary-edit",
+                name: "dictionary-edit",
+                component: () =>
+                    import("../views/dictionary/dictionary-add.vue"),
+                props: (route) => ({
+                    isEdit: true,
+                    dictId: route.query.dictId,
+                }),
+            },
+            {
+                path: "dictionary-view",
+                name: "dictionary-view",
+                component: () =>
+                    import("../views/dictionary/dictionary-add.vue"),
+                props: (route) => ({
+                    isView: true,
+                    dictId: route.query.dictId,
+                }),
             },
         ],
     },

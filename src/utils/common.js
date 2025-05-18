@@ -187,8 +187,44 @@ export const formatTimeAgo = (date, baseDate = new Date()) => {
 // 保存loading实例的Map
 const loadingInstances = new Map();
 
+// 全局loading实例
+let globalLoadingInstance = null;
+
 /**
- * 显示全屏加载状态
+ * 显示全局加载状态
+ * @param {string} text 加载提示文本
+ * @param {object} options 加载配置项
+ * @returns {object} loading实例
+ */
+export const showGlobalLoading = (text = "加载中...", options = {}) => {
+    // 如果已存在全局loading，先关闭
+    if (globalLoadingInstance) {
+        globalLoadingInstance.close();
+    }
+
+    // 创建全局loading
+    globalLoadingInstance = ElLoading.service({
+        lock: true,
+        text,
+        background: "rgba(0, 0, 0, 0.7)",
+        ...options,
+    });
+
+    return globalLoadingInstance;
+};
+
+/**
+ * 关闭全局加载状态
+ */
+export const hideGlobalLoading = () => {
+    if (globalLoadingInstance) {
+        globalLoadingInstance.close();
+        globalLoadingInstance = null;
+    }
+};
+
+/**
+ * 显示全屏加载状态 (兼容旧API)
  * @param {string} key 唯一标识，用于关闭对应的loading
  * @param {string} text 加载提示文本
  * @param {object} options ElLoading的配置选项
@@ -220,7 +256,7 @@ export const showLoading = (
 };
 
 /**
- * 关闭加载状态
+ * 关闭加载状态 (兼容旧API)
  * @param {string} key 要关闭的loading的唯一标识
  */
 export const hideLoading = (key = "global") => {
@@ -231,9 +267,59 @@ export const hideLoading = (key = "global") => {
 };
 
 /**
+ * 显示局部加载状态
+ * @param {string|Element} target 加载遮罩的目标元素或CSS选择器
+ * @param {string} key 唯一标识，用于关闭对应的loading
+ * @param {string} text 加载提示文本
+ * @param {object} options 加载配置项
+ * @returns {object} loading实例
+ */
+export const showLocalLoading = (
+    target,
+    key = "default",
+    text = "加载中...",
+    options = {}
+) => {
+    // 如果已存在相同key的局部loading，先关闭
+    if (loadingInstances.has(key)) {
+        loadingInstances.get(key).close();
+        loadingInstances.delete(key);
+    }
+
+    // 创建局部loading
+    const instance = ElLoading.service({
+        target,
+        text,
+        background: "rgba(255, 255, 255, 0.7)",
+        ...options,
+    });
+
+    loadingInstances.set(key, instance);
+    return instance;
+};
+
+/**
+ * 关闭局部加载状态
+ * @param {string} key 要关闭的loading的唯一标识
+ */
+export const hideLocalLoading = (key = "default") => {
+    if (loadingInstances.has(key)) {
+        loadingInstances.get(key).close();
+        loadingInstances.delete(key);
+    }
+};
+
+/**
  * 关闭所有加载状态
  */
 export const hideAllLoading = () => {
+    // 关闭全局loading
+    if (globalLoadingInstance) {
+        globalLoadingInstance.close();
+        globalLoadingInstance = null;
+    }
+
+    // 关闭其他loading实例
     loadingInstances.forEach((instance) => {
         instance.close();
     });
@@ -353,8 +439,12 @@ export default {
     getRelativeDate,
     dateDiff,
     formatTimeAgo,
+    showGlobalLoading,
+    hideGlobalLoading,
     showLoading,
     hideLoading,
+    showLocalLoading,
+    hideLocalLoading,
     hideAllLoading,
     showMessage,
     showNotification,

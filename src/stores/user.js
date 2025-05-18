@@ -63,6 +63,7 @@ export const useUserStore = defineStore("user", () => {
     // 登录
     const login = async (formData) => {
         try {
+            // 使用标准请求，全局loading会自动启用
             const response = await request.post("/api/auth/login", formData);
 
             console.log("登录响应", response);

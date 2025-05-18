@@ -21,5 +21,8 @@ export default defineConfig({
                 secure: false,
             },
         },
+        fs: {
+            strict: false, // 关闭文件系统的严格模式，不区分大小写
+        },
     },
 });
