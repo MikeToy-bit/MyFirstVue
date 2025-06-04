@@ -1,0 +1,298 @@
+/**
+ * 公共列表页面样式
+ * 用于所有列表页面的统一样式
+ */
+
+/* 页面容器 */
+.list-page {
+    padding: 20px;
+    min-height: 100vh;
+    box-sizing: border-box;
+}
+
+/* 搜索区域 */
+.list-search-card {
+    margin-bottom: 20px;
+}
+
+.list-search-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.list-search-expand-btn {
+    font-size: 14px;
+    padding: 4px 8px;
+    color: #409eff;
+}
+
+.list-search-content {
+    transition: all 0.3s ease;
+    overflow: hidden;
+}
+
+.list-search-content.list-search-collapsed {
+    max-height: 140px;
+}
+
+.list-search-form-container {
+    padding: 10px 0;
+}
+
+.list-search-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr auto;
+    gap: 20px 15px;
+    align-items: end;
+}
+
+.list-search-form-grid .el-form-item {
+    margin-bottom: 18px;
+}
+
+.list-search-actions {
+    display: flex;
+    gap: 10px;
+    white-space: nowrap;
+    margin-bottom: 18px;
+}
+
+/* 表格区域 */
+.list-table-card {
+    min-height: 600px;
+}
+
+.list-table-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.list-table-header-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.list-table-container {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.list-table-toolbar {
+    margin-bottom: 15px;
+    padding: 12px;
+    background-color: #f5f7fa;
+    border: 1px solid #ebeef5;
+    border-radius: 4px;
+}
+
+.list-table-toolbar .el-button {
+    margin-right: 10px;
+}
+
+.list-table-wrapper {
+    min-height: 400px; /* 最小高度，实际高度由JavaScript动态设置 */
+}
+
+.list-pagination {
+    margin-top: 15px;
+    display: flex;
+    justify-content: flex-end;
+    padding: 10px 0;
+}
+
+/* Element Plus 组件样式覆盖 */
+.list-page .el-card {
+    border: 1px solid #ebeef5;
+    border-radius: 4px;
+    background-color: #fff;
+    overflow: hidden;
+    color: #303133;
+    transition: 0.3s;
+}
+
+.list-page .el-card__body {
+    padding: 20px;
+}
+
+.list-page .el-card__header {
+    padding: 15px 20px;
+    border-bottom: 1px solid #ebeef5;
+}
+
+.list-page .el-form-item__label {
+    font-weight: 500;
+    color: #606266;
+    width: 80px !important;
+    text-align: right;
+    padding-right: 12px;
+}
+
+.list-page .el-form-item__content {
+    flex: 1;
+}
+
+.list-page .el-input,
+.list-page .el-select,
+.list-page .el-date-picker {
+    width: 100%;
+}
+
+.list-page .el-table {
+    height: 100% !important;
+}
+
+.list-page .el-table .el-table__body-wrapper {
+    overflow-y: auto;
+}
+
+.list-page .el-table th {
+    background-color: #f5f7fa;
+    font-weight: 600;
+}
+
+.list-page .el-table--border .el-table__inner-wrapper::after {
+    width: 0;
+}
+
+/* 操作列固定样式优化 */
+.list-page .el-table__fixed-right {
+    box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
+}
+
+/* 搜索收缩状态下的遮罩效果 */
+.list-search-content.list-search-collapsed::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 40px;
+    background: linear-gradient(
+        to bottom,
+        rgba(255, 255, 255, 0),
+        rgba(255, 255, 255, 0.9)
+    );
+    pointer-events: none;
+    z-index: 1;
+}
+
+.list-search-content {
+    position: relative;
+}
+
+/* 展开按钮样式优化 */
+.list-search-expand-btn:hover {
+    color: #66b1ff;
+    background-color: rgba(64, 158, 255, 0.1);
+}
+
+/* 响应式布局 */
+@media (max-width: 1400px) {
+    .list-search-form-grid {
+        grid-template-columns: 1fr 1fr auto;
+    }
+}
+
+@media (max-width: 1200px) {
+    .list-search-form-grid {
+        grid-template-columns: 1fr auto;
+    }
+}
+
+@media (max-width: 768px) {
+    .list-search-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .list-search-actions {
+        justify-content: flex-start;
+    }
+
+    .list-table-header {
+        flex-direction: column;
+        gap: 10px;
+        align-items: flex-start;
+    }
+
+    .list-page {
+        padding: 10px;
+    }
+
+    .list-table-wrapper {
+        height: 400px;
+    }
+}
+
+/* 通用工具类 */
+.list-status-tag {
+    margin: 2px;
+}
+
+.list-action-btn {
+    margin-right: 8px;
+    margin-bottom: 4px;
+}
+
+.list-action-btn:last-child {
+    margin-right: 0;
+}
+
+/* 表格操作列样式 */
+.list-table-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.list-table-actions .el-button {
+    margin: 0;
+}
+
+/* 表格加载状态优化 */
+.list-table-wrapper .el-loading-mask {
+    background-color: rgba(255, 255, 255, 0.9);
+}
+
+/* 空数据状态 */
+.list-empty-data {
+    padding: 40px;
+    text-align: center;
+    color: #909399;
+}
+
+.list-empty-data .el-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+}
+
+/* 批量操作提示 */
+.list-batch-tip {
+    background-color: #f0f9ff;
+    border: 1px solid #e1f5fe;
+    border-radius: 4px;
+    padding: 8px 12px;
+    margin-bottom: 12px;
+    color: #0277bd;
+    font-size: 14px;
+}
+
+/* 状态标签颜色 */
+.list-status-active {
+    color: #67c23a;
+}
+
+.list-status-inactive {
+    color: #f56c6c;
+}
+
+.list-status-pending {
+    color: #e6a23c;
+}
+
+.list-status-default {
+    color: #909399;
+}

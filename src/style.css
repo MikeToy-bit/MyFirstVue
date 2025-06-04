@@ -77,3 +77,15 @@ button:focus-visible {
         background-color: #f9f9f9;
     }
 }
+
+/* 
+ * 公共样式引用说明：
+ * 
+ * 列表页面样式：@import '@/assets/styles/list-page.css'
+ * - 适用于所有列表页面的统一样式
+ * - 包含搜索区域、表格区域、分页等组件样式
+ * - 支持响应式布局和搜索条件展开/收缩功能
+ * 
+ * 使用方法：在需要的组件 <style> 标签中添加 @import '@/assets/styles/list-page.css'
+ * 详细使用说明请参考：src/assets/styles/README_LIST_STYLES.md
+ */

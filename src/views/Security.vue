@@ -6,40 +6,18 @@
                     <span>安全设置</span>
                 </div>
             </template>
-            <el-form
-                ref="formRef"
-                :model="form"
-                :rules="rules"
-                label-width="120px"
-            >
+            <el-form ref="formRef" :model="form" :rules="rules" label-width="120px">
                 <el-form-item label="旧密码" prop="oldPassword">
-                    <el-input
-                        v-model="form.oldPassword"
-                        type="password"
-                        placeholder="请输入旧密码"
-                        show-password
-                    />
+                    <el-input v-model="form.oldPassword" type="password" placeholder="请输入旧密码" show-password />
                 </el-form-item>
                 <el-form-item label="新密码" prop="newPassword">
-                    <el-input
-                        v-model="form.newPassword"
-                        type="password"
-                        placeholder="请输入新密码"
-                        show-password
-                    />
+                    <el-input v-model="form.newPassword" type="password" placeholder="请输入新密码" show-password />
                 </el-form-item>
                 <el-form-item label="确认新密码" prop="confirmPassword">
-                    <el-input
-                        v-model="form.confirmPassword"
-                        type="password"
-                        placeholder="请再次输入新密码"
-                        show-password
-                    />
+                    <el-input v-model="form.confirmPassword" type="password" placeholder="请再次输入新密码" show-password />
                 </el-form-item>
                 <el-form-item>
-                    <el-button type="primary" @click="handleSubmit"
-                        >保存</el-button
-                    >
+                    <el-button type="primary" @click="handleSubmit">保存</el-button>
                     <el-button @click="handleReset">重置</el-button>
                 </el-form-item>
             </el-form>

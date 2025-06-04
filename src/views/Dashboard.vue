@@ -2,10 +2,7 @@
     <div class="dashboard-container">
         <el-row :gutter="20">
             <el-col :span="6" v-for="(card, index) in cards" :key="index">
-                <el-card
-                    class="dashboard-card"
-                    :body-style="{ padding: '20px' }"
-                >
+                <el-card class="dashboard-card" :body-style="{ padding: '20px' }">
                     <div class="card-content">
                         <el-icon class="card-icon" :class="card.type">
                             <component :is="card.icon" />
@@ -26,15 +23,9 @@
                         <div class="card-header">
                             <span>访问趋势</span>
                             <el-radio-group v-model="chartType" size="small">
-                                <el-radio-button label="week"
-                                    >本周</el-radio-button
-                                >
-                                <el-radio-button label="month"
-                                    >本月</el-radio-button
-                                >
-                                <el-radio-button label="year"
-                                    >全年</el-radio-button
-                                >
+                                <el-radio-button label="week">本周</el-radio-button>
+                                <el-radio-button label="month">本月</el-radio-button>
+                                <el-radio-button label="year">全年</el-radio-button>
                             </el-radio-group>
                         </div>
                     </template>

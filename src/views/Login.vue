@@ -56,6 +56,7 @@ import { useRouter } from "vue-router";
 import { useUserStore } from "../stores/user";
 import { User, Lock } from "@element-plus/icons-vue";
 import { ElMessage } from "element-plus";
+import { showPageLoading, hidePageLoading } from "../utils/common";
 
 // 路由和状态管理
 const router = useRouter();
@@ -87,6 +88,7 @@ const handleLogin = async () => {
 
     try {
         await loginFormRef.value.validate();
+        // 只使用按钮loading，不使用页面级loading（避免冲突）
         loading.value = true;
 
         const formData = {
@@ -97,6 +99,7 @@ const handleLogin = async () => {
 
         if (userStore.token) {
             console.log("登录成功，准备跳转到:", "main/dashboard");
+            // 跳转时使用页面级loading，由路由守卫统一处理
             router.push("/main/dashboard");
         } else {
             ElMessage.error("登录失败，未获取到有效的令牌");

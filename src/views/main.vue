@@ -3,7 +3,7 @@
         <el-container>
             <el-aside :width="isCollapse ? '64px' : '200px'">
                 <div class="logo">
-                    <img src="../assets/logo.png" alt="Logo" />
+                    <el-icon size="30" color="#409EFF"><House /></el-icon>
                     <span v-show="!isCollapse">管理系统</span>
                 </div>
                 <el-menu
@@ -101,7 +101,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useUserStore } from "../stores/user";
 import {
@@ -113,13 +113,28 @@ import {
     Menu,
     Document,
     HomeFilled,
+    House,
 } from "@element-plus/icons-vue";
 import { ElMessage } from "element-plus";
+import { showPageLoading, hidePageLoading } from "../utils/common";
 
 // 路由和状态管理
 const router = useRouter();
 const route = useRoute();
 const userStore = useUserStore();
+
+// 监听路由变化，确保loading正确隐藏
+watch(
+    () => route.path,
+    (newPath, oldPath) => {
+        if (newPath !== oldPath) {
+            // 路由变化完成，延迟隐藏页面loading，确保有足够的显示时间
+            setTimeout(() => {
+                hidePageLoading(true);
+            }, 500); // 增加到500ms，确保loading有足够的显示时间
+        }
+    }
+);
 
 // 响应式状态
 const isCollapse = ref(false);
@@ -185,20 +200,36 @@ const removeTab = (targetName) => {
     tabs.value = currentTabs.filter((tab) => tab.path !== targetName);
 
     if (targetName === route.path) {
-        router.push(activeName);
+        // 显示页面级loading
+        showPageLoading();
+
+        // 稍微延迟路由跳转，确保loading先显示
+        setTimeout(() => {
+            router.push(activeName);
+        }, 50);
     }
 };
 
 const handleTabClick = (tab) => {
     const path = tab.props.name;
-    router.push(path);
+
+    // 只有当路径和当前路由不同时才显示loading和跳转
+    if (path !== route.path) {
+        // 显示页面级loading
+        showPageLoading();
+
+        // 稍微延迟路由跳转，确保loading先显示
+        setTimeout(() => {
+            router.push(path);
+        }, 50);
+    } else {
+    }
 };
 
 // 获取菜单数据并处理
 const loadMenuData = async () => {
     try {
         // 从store中获取菜单数据
-        console.log("main开始获取菜单数据");
         const menus = await userStore.getMenuList();
         dynamicMenus.value = menus || [];
 
@@ -217,10 +248,7 @@ const loadMenuData = async () => {
             });
         });
         menuItemsMap.value = menuMap;
-
-        console.log("菜单加载完成", dynamicMenus.value);
     } catch (error) {
-        console.error("加载菜单数据失败", error);
         ElMessage.warning("菜单加载失败，将使用默认菜单");
 
         // 使用静态菜单作为备用
@@ -238,9 +266,12 @@ const handleMenuSelect = (index) => {
 
     if (menuItem) {
         addTab(menuItem.title, index);
+        // 只有当路径和当前路由不同时才显示loading
+        if (index !== route.path) {
+            showPageLoading();
+        }
         router.push(index);
     } else {
-        console.error("未找到菜单项:", index);
     }
 };
 
@@ -326,13 +357,87 @@ onMounted(async () => {
     transition: all 0.3s;
 }
 
-:deep(.el-menu--collapse .el-menu-item),
-:deep(.el-menu--collapse .el-sub-menu__title) {
-    padding: 0 20px !important;
+/* 收缩状态下的菜单项样式 */
+:deep(.el-menu--collapse .el-menu-item) {
+    padding: 0 20px;
 }
 
+:deep(.el-menu--collapse .el-sub-menu__title) {
+    padding: 0 20px;
+}
+
+/* 正常状态下的子菜单缩进 */
+:deep(.el-sub-menu .el-menu-item) {
+    padding-left: 60px !important;
+    position: relative;
+}
+
+:deep(.el-sub-menu .el-menu-item:hover) {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+:deep(.el-sub-menu .el-menu-item.is-active) {
+    background-color: #409eff;
+    color: #fff;
+}
+
+/* 收缩状态下隐藏箭头 */
 :deep(.el-menu--collapse .el-sub-menu__icon-arrow) {
     display: none;
+}
+
+/* 菜单项基础样式 */
+:deep(.el-menu-item) {
+    position: relative;
+    line-height: 48px;
+    height: 48px;
+}
+
+:deep(.el-sub-menu__title) {
+    line-height: 48px;
+    height: 48px;
+}
+
+/* 父菜单样式 */
+:deep(.el-sub-menu__title) {
+    padding-left: 20px;
+    font-weight: 500;
+}
+
+/* 父菜单悬停效果 */
+:deep(.el-sub-menu__title:hover) {
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+/* 根级菜单项样式 */
+:deep(.el-menu > .el-menu-item) {
+    padding-left: 20px;
+}
+
+:deep(.el-menu > .el-menu-item:hover) {
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+/* 子菜单图标缩进 */
+:deep(.el-sub-menu .el-menu-item .el-icon) {
+    margin-right: 8px;
+    width: 16px;
+    text-align: center;
+}
+
+/* 收缩状态下的特殊处理 */
+:deep(.el-menu--collapse .el-sub-menu) {
+    pointer-events: none;
+}
+
+:deep(.el-menu--collapse .el-menu-item .el-icon) {
+    margin-right: 0;
+}
+
+/* 菜单项文字样式 */
+:deep(.el-menu-item span),
+:deep(.el-sub-menu__title span) {
+    font-size: 14px;
 }
 
 .el-header {
@@ -419,5 +524,16 @@ onMounted(async () => {
     height: calc(100% - 40px);
     padding: 20px;
     overflow: auto;
+}
+
+/* 子菜单容器动画 */
+:deep(.el-sub-menu .el-menu) {
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+/* 子菜单展开时的样式 */
+:deep(.el-sub-menu.is-opened .el-menu) {
+    margin-left: 18px;
 }
 </style>

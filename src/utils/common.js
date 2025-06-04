@@ -9,6 +9,7 @@ import {
     ElMessageBox,
     ElNotification,
 } from "element-plus";
+import { nextTick } from "vue";
 
 // ------------ 日期时间处理 ------------
 
@@ -93,7 +94,6 @@ export const getRelativeDate = (
             date.setSeconds(date.getSeconds() + value);
             break;
         default:
-            console.warn(`不支持的时间单位: ${unit}`);
     }
 
     return formatDate(date, format);
@@ -182,46 +182,397 @@ export const formatTimeAgo = (date, baseDate = new Date()) => {
     return `${Math.floor(absDiffMs / (1000 * 60 * 60 * 24 * 365))}年${suffix}`;
 };
 
-// ------------ Loading管理 ------------
+// =============== LoadingBar 管理 ===============
 
-// 保存loading实例的Map
-const loadingInstances = new Map();
+class LoadingBar {
+    constructor() {
+        this.isLoading = false;
+        this.timer = null;
+        this.progress = 0;
+        this.element = null;
+        this.hideTimer = null; // 添加隐藏定时器
+        this.init();
+    }
 
-// 全局loading实例
-let globalLoadingInstance = null;
+    init() {
+        // 创建loading bar元素
+        this.element = document.createElement("div");
+        this.element.className = "el-loading-bar";
+        this.element.innerHTML = `
+            <div class="el-loading-bar-inner"></div>
+        `;
+
+        // 添加样式
+        if (!document.getElementById("loading-bar-style")) {
+            const style = document.createElement("style");
+            style.id = "loading-bar-style";
+            style.textContent = `
+                .el-loading-bar {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    height: 3px;
+                    z-index: 9999;
+                    transition: opacity 0.2s ease;
+                    opacity: 0;
+                    background: rgba(0, 0, 0, 0.1);
+                }
+                
+                .el-loading-bar.loading {
+                    opacity: 1;
+                }
+                
+                .el-loading-bar-inner {
+                    height: 100%;
+                    background: linear-gradient(90deg, #409EFF, #67C23A);
+                    border-radius: 0 3px 3px 0;
+                    transition: width 0.2s ease;
+                    width: 0%;
+                    box-shadow: 0 0 10px rgba(64, 158, 255, 0.6);
+                }
+                
+                .el-loading-bar.error .el-loading-bar-inner {
+                    background: linear-gradient(90deg, #F56C6C, #E6A23C);
+                }
+                
+                .el-loading-bar.success .el-loading-bar-inner {
+                    background: linear-gradient(90deg, #67C23A, #95D475);
+                }
+            `;
+            document.head.appendChild(style);
+        }
+
+        document.body.appendChild(this.element);
+    }
+
+    start() {
+        if (this.isLoading) return;
+
+        // 清除任何正在进行的隐藏操作
+        if (this.hideTimer) {
+            clearTimeout(this.hideTimer);
+            this.hideTimer = null;
+        }
+
+        this.isLoading = true;
+        this.progress = 0;
+        this.element.className = "el-loading-bar loading";
+        this.element.classList.remove("success", "error");
+
+        // 确保立即显示
+        this.element.style.opacity = "1";
+
+        // 立即设置一个小的初始进度，让用户能立即看到loading条
+        setTimeout(() => {
+            this.setProgress(10);
+        }, 10);
+
+        // 模拟进度，速度稍慢一些确保用户能看到
+        this.timer = setInterval(() => {
+            if (this.progress < 85) {
+                // 改为85%，留更多空间给finish()
+                this.progress += Math.random() * 8 + 2; // 每次增加2-10%
+                this.setProgress(this.progress);
+            }
+        }, 300); // 增加间隔时间到300ms
+    }
+
+    setProgress(progress) {
+        if (!this.element) return;
+        const inner = this.element.querySelector(".el-loading-bar-inner");
+        if (inner) {
+            inner.style.width = Math.min(progress, 100) + "%";
+        }
+    }
+
+    finish() {
+        if (!this.isLoading) {
+            return;
+        }
+
+        this.isLoading = false;
+        if (this.timer) {
+            clearInterval(this.timer);
+            this.timer = null;
+        }
+
+        this.setProgress(100);
+        this.element.classList.add("success");
+
+        // 延迟隐藏
+        this.hideTimer = setTimeout(() => {
+            this.element.style.opacity = "0";
+            setTimeout(() => {
+                this.element.className = "el-loading-bar";
+                this.element.classList.remove("success", "error");
+                this.progress = 0;
+                this.setProgress(0);
+                this.hideTimer = null;
+            }, 200);
+        }, 300);
+    }
+
+    error() {
+        if (!this.isLoading) return;
+
+        this.isLoading = false;
+        if (this.timer) {
+            clearInterval(this.timer);
+            this.timer = null;
+        }
+
+        this.setProgress(100);
+        this.element.classList.add("error");
+
+        // 延迟隐藏
+        this.hideTimer = setTimeout(() => {
+            this.element.style.opacity = "0";
+            setTimeout(() => {
+                this.element.className = "el-loading-bar";
+                this.element.classList.remove("success", "error");
+                this.progress = 0;
+                this.setProgress(0);
+                this.hideTimer = null;
+            }, 200);
+        }, 300);
+    }
+
+    // 强制隐藏（用于紧急情况）
+    forceHide() {
+        if (this.timer) {
+            clearInterval(this.timer);
+            this.timer = null;
+        }
+        if (this.hideTimer) {
+            clearTimeout(this.hideTimer);
+            this.hideTimer = null;
+        }
+
+        this.isLoading = false;
+        this.element.style.opacity = "0";
+        this.element.className = "el-loading-bar";
+        this.element.classList.remove("success", "error", "loading");
+        this.progress = 0;
+        this.setProgress(0);
+    }
+}
+
+// 创建全局LoadingBar实例
+const loadingBar = new LoadingBar();
+
+// =============== Loading 管理器 ===============
+
+class LoadingManager {
+    constructor() {
+        this.loadingInstances = new Map();
+        this.globalLoadingInstance = null;
+        this.pageLoadingActive = false; // 跟踪页面级loading状态
+    }
+
+    /**
+     * 显示页面级加载条（用于登录、路由跳转等）
+     */
+    showPageLoading() {
+        // 如果全局loading正在运行，先关闭它
+        if (this.globalLoadingInstance) {
+            this.globalLoadingInstance.close();
+            this.globalLoadingInstance = null;
+        }
+
+        this.pageLoadingActive = true;
+        loadingBar.start();
+    }
+
+    /**
+     * 隐藏页面级加载条
+     * @param {boolean} success 是否成功完成
+     */
+    hidePageLoading(success = true) {
+        if (!this.pageLoadingActive) {
+            return;
+        }
+
+        this.pageLoadingActive = false;
+        if (success) {
+            loadingBar.finish();
+        } else {
+            loadingBar.error();
+        }
+    }
+
+    /**
+     * 显示全局遮罩加载（用于重要操作）
+     * @param {string} text 加载提示文本
+     * @param {object} options 加载配置项
+     */
+    showGlobalLoading(text = "加载中...", options = {}) {
+        // 如果页面级loading正在运行，不显示全局loading（避免冲突）
+        if (this.pageLoadingActive) {
+            return null;
+        }
+
+        if (this.globalLoadingInstance) {
+            this.globalLoadingInstance.close();
+        }
+
+        this.globalLoadingInstance = ElLoading.service({
+            lock: true,
+            text,
+            background: "rgba(0, 0, 0, 0.7)",
+            ...options,
+        });
+
+        return this.globalLoadingInstance;
+    }
+
+    /**
+     * 隐藏全局遮罩加载
+     */
+    hideGlobalLoading() {
+        if (this.globalLoadingInstance) {
+            this.globalLoadingInstance.close();
+            this.globalLoadingInstance = null;
+        }
+    }
+
+    /**
+     * 显示局部加载（用于表格、表单等）
+     * @param {string|Element} target 目标元素或选择器
+     * @param {string} key 唯一标识
+     * @param {string} text 加载文本
+     * @param {object} options 配置选项
+     */
+    showLocalLoading(
+        target,
+        key = "default",
+        text = "加载中...",
+        options = {}
+    ) {
+        // 关闭已存在的同key实例
+        if (this.loadingInstances.has(key)) {
+            this.loadingInstances.get(key).close();
+            this.loadingInstances.delete(key);
+        }
+
+        const instance = ElLoading.service({
+            target,
+            text,
+            background: "rgba(255, 255, 255, 0.8)",
+            ...options,
+        });
+
+        this.loadingInstances.set(key, instance);
+        return instance;
+    }
+
+    /**
+     * 隐藏局部加载
+     * @param {string} key 唯一标识
+     */
+    hideLocalLoading(key = "default") {
+        if (this.loadingInstances.has(key)) {
+            this.loadingInstances.get(key).close();
+            this.loadingInstances.delete(key);
+        }
+    }
+
+    /**
+     * 隐藏所有加载状态
+     */
+    hideAllLoading() {
+        // 强制隐藏页面级加载条
+        this.pageLoadingActive = false;
+        loadingBar.forceHide();
+
+        // 隐藏全局加载
+        this.hideGlobalLoading();
+
+        // 隐藏所有局部加载
+        this.loadingInstances.forEach((instance) => {
+            instance.close();
+        });
+        this.loadingInstances.clear();
+    }
+
+    /**
+     * 获取当前loading状态
+     */
+    getLoadingStatus() {
+        return {
+            pageLoading: this.pageLoadingActive,
+            globalLoading: !!this.globalLoadingInstance,
+            localLoadingCount: this.loadingInstances.size,
+        };
+    }
+}
+
+// 创建全局管理器实例
+const loadingManager = new LoadingManager();
+
+// ------------ Loading管理（新版本） ------------
 
 /**
- * 显示全局加载状态
+ * 显示页面级加载条（用于登录、路由跳转等）
+ */
+export const showPageLoading = () => loadingManager.showPageLoading();
+
+/**
+ * 隐藏页面级加载条
+ * @param {boolean} success 是否成功完成
+ */
+export const hidePageLoading = (success = true) =>
+    loadingManager.hidePageLoading(success);
+
+/**
+ * 显示全局遮罩加载（用于重要操作）
  * @param {string} text 加载提示文本
  * @param {object} options 加载配置项
  * @returns {object} loading实例
  */
 export const showGlobalLoading = (text = "加载中...", options = {}) => {
-    // 如果已存在全局loading，先关闭
-    if (globalLoadingInstance) {
-        globalLoadingInstance.close();
-    }
-
-    // 创建全局loading
-    globalLoadingInstance = ElLoading.service({
-        lock: true,
-        text,
-        background: "rgba(0, 0, 0, 0.7)",
-        ...options,
-    });
-
-    return globalLoadingInstance;
+    return loadingManager.showGlobalLoading(text, options);
 };
 
 /**
  * 关闭全局加载状态
  */
 export const hideGlobalLoading = () => {
-    if (globalLoadingInstance) {
-        globalLoadingInstance.close();
-        globalLoadingInstance = null;
-    }
+    loadingManager.hideGlobalLoading();
 };
+
+/**
+ * 显示局部加载（用于表格、表单等）
+ * @param {string|Element} target 目标元素或选择器
+ * @param {string} key 唯一标识
+ * @param {string} text 加载文本
+ * @param {object} options 配置选项
+ */
+export const showLocalLoading = (
+    target,
+    key = "default",
+    text = "加载中...",
+    options = {}
+) => {
+    return loadingManager.showLocalLoading(target, key, text, options);
+};
+
+/**
+ * 隐藏局部加载
+ * @param {string} key 唯一标识
+ */
+export const hideLocalLoading = (key = "default") => {
+    loadingManager.hideLocalLoading(key);
+};
+
+/**
+ * 隐藏所有加载状态
+ */
+export const hideAllLoading = () => {
+    loadingManager.hideAllLoading();
+};
+
+// ------------ 兼容旧版本的Loading接口 ------------
 
 /**
  * 显示全屏加载状态 (兼容旧API)
@@ -235,95 +586,23 @@ export const showLoading = (
     text = "正在加载中，请稍等...",
     options = {}
 ) => {
-    // 如果已存在相同key的loading实例，先关闭
-    if (loadingInstances.has(key)) {
-        loadingInstances.get(key).close();
+    if (key === "global") {
+        return showGlobalLoading(text, options);
+    } else {
+        return showLocalLoading(document.body, key, text, options);
     }
-
-    const defaultOptions = {
-        lock: true,
-        text,
-        background: "rgba(0, 0, 0, 0.7)",
-    };
-
-    const instance = ElLoading.service({
-        ...defaultOptions,
-        ...options,
-    });
-
-    loadingInstances.set(key, instance);
-    return instance;
 };
 
 /**
  * 关闭加载状态 (兼容旧API)
- * @param {string} key 要关闭的loading的唯一标识
+ * @param {string} key 唯一标识
  */
 export const hideLoading = (key = "global") => {
-    if (loadingInstances.has(key)) {
-        loadingInstances.get(key).close();
-        loadingInstances.delete(key);
+    if (key === "global") {
+        hideGlobalLoading();
+    } else {
+        hideLocalLoading(key);
     }
-};
-
-/**
- * 显示局部加载状态
- * @param {string|Element} target 加载遮罩的目标元素或CSS选择器
- * @param {string} key 唯一标识，用于关闭对应的loading
- * @param {string} text 加载提示文本
- * @param {object} options 加载配置项
- * @returns {object} loading实例
- */
-export const showLocalLoading = (
-    target,
-    key = "default",
-    text = "加载中...",
-    options = {}
-) => {
-    // 如果已存在相同key的局部loading，先关闭
-    if (loadingInstances.has(key)) {
-        loadingInstances.get(key).close();
-        loadingInstances.delete(key);
-    }
-
-    // 创建局部loading
-    const instance = ElLoading.service({
-        target,
-        text,
-        background: "rgba(255, 255, 255, 0.7)",
-        ...options,
-    });
-
-    loadingInstances.set(key, instance);
-    return instance;
-};
-
-/**
- * 关闭局部加载状态
- * @param {string} key 要关闭的loading的唯一标识
- */
-export const hideLocalLoading = (key = "default") => {
-    if (loadingInstances.has(key)) {
-        loadingInstances.get(key).close();
-        loadingInstances.delete(key);
-    }
-};
-
-/**
- * 关闭所有加载状态
- */
-export const hideAllLoading = () => {
-    // 关闭全局loading
-    if (globalLoadingInstance) {
-        globalLoadingInstance.close();
-        globalLoadingInstance = null;
-    }
-
-    // 关闭其他loading实例
-    loadingInstances.forEach((instance) => {
-        instance.close();
-    });
-    loadingInstances.clear();
 };
 
 // ------------ 消息通知 ------------
@@ -432,6 +711,34 @@ export const isEmpty = (value) => {
     return false;
 };
 
+// ------------ 调试和紧急修复工具 ------------
+
+/**
+ * 获取当前所有loading状态（调试用）
+ */
+export const getLoadingStatus = () => {
+    return loadingManager.getLoadingStatus();
+};
+
+/**
+ * 紧急修复loading问题（强制清除所有loading）
+ */
+export const emergencyFixLoading = () => {
+    loadingManager.hideAllLoading();
+
+    // 额外清理可能残留的Element Plus loading
+    const loadingElements = document.querySelectorAll(".el-loading-mask");
+    loadingElements.forEach((el) => {
+        el.remove();
+    });
+};
+
+// 将紧急修复工具挂载到window对象，方便调试
+if (typeof window !== "undefined") {
+    window.emergencyFixLoading = emergencyFixLoading;
+    window.getLoadingStatus = getLoadingStatus;
+}
+
 // 默认导出
 export default {
     formatDate,
@@ -439,6 +746,8 @@ export default {
     getRelativeDate,
     dateDiff,
     formatTimeAgo,
+    showPageLoading,
+    hidePageLoading,
     showGlobalLoading,
     hideGlobalLoading,
     showLoading,
@@ -452,4 +761,6 @@ export default {
     debounce,
     throttle,
     isEmpty,
+    getLoadingStatus,
+    emergencyFixLoading,
 };

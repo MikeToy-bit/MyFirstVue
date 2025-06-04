@@ -6,25 +6,12 @@
                     <span>常规设置</span>
                 </div>
             </template>
-            <el-form
-                ref="formRef"
-                :model="form"
-                :rules="rules"
-                label-width="120px"
-            >
+            <el-form ref="formRef" :model="form" :rules="rules" label-width="120px">
                 <el-form-item label="系统名称" prop="systemName">
-                    <el-input
-                        v-model="form.systemName"
-                        placeholder="请输入系统名称"
-                    />
+                    <el-input v-model="form.systemName" placeholder="请输入系统名称" />
                 </el-form-item>
                 <el-form-item label="系统Logo" prop="logo">
-                    <el-upload
-                        class="avatar-uploader"
-                        action="#"
-                        :show-file-list="false"
-                        :before-upload="beforeUpload"
-                    >
+                    <el-upload class="avatar-uploader" action="#" :show-file-list="false" :before-upload="beforeUpload">
                         <img v-if="form.logo" :src="form.logo" class="avatar" />
                         <el-icon v-else class="avatar-uploader-icon">
                             <Plus />
@@ -32,26 +19,16 @@
                     </el-upload>
                 </el-form-item>
                 <el-form-item label="系统描述" prop="description">
-                    <el-input
-                        v-model="form.description"
-                        type="textarea"
-                        :rows="3"
-                        placeholder="请输入系统描述"
-                    />
+                    <el-input v-model="form.description" type="textarea" :rows="3" placeholder="请输入系统描述" />
                 </el-form-item>
                 <el-form-item label="备案信息" prop="icp">
                     <el-input v-model="form.icp" placeholder="请输入备案信息" />
                 </el-form-item>
                 <el-form-item label="版权信息" prop="copyright">
-                    <el-input
-                        v-model="form.copyright"
-                        placeholder="请输入版权信息"
-                    />
+                    <el-input v-model="form.copyright" placeholder="请输入版权信息" />
                 </el-form-item>
                 <el-form-item>
-                    <el-button type="primary" @click="handleSubmit"
-                        >保存</el-button
-                    >
+                    <el-button type="primary" @click="handleSubmit">保存</el-button>
                     <el-button @click="handleReset">重置</el-button>
                 </el-form-item>
             </el-form>
