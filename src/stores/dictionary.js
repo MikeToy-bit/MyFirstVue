@@ -33,8 +33,8 @@ export const useDictionaryStore = defineStore("dictionary", () => {
                 `/api/Dictionary/tree/${currentDictType.value}`
             );
 
-            if (response.data && response.data.data) {
-                treeData.value = response.data.data;
+            if (response.success) {
+                treeData.value = response.data;
                 return true;
             } else {
                 console.error("[Store] 字典树数据加载失败");

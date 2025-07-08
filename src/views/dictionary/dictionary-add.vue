@@ -1,24 +1,11 @@
 <template>
     <div class="dictionary-form-container">
-        <el-page-header
-            @back="goBack"
-            :title="isChild ? '新增子节点' : '新增根节点'"
-        />
+        <el-page-header @back="goBack" :title="isChild ? '新增子节点' : '新增根节点'" />
 
         <el-card class="dictionary-form-card">
-            <el-form
-                ref="formRef"
-                :model="formData"
-                :rules="rules"
-                label-width="120px"
-                v-loading="loading"
-            >
+            <el-form ref="formRef" :model="formData" :rules="rules" label-width="120px" v-loading="loading">
                 <!-- 上级字典信息 -->
-                <el-form-item
-                    v-if="isChild"
-                    label="上级节点"
-                    class="parent-info"
-                >
+                <el-form-item v-if="isChild" label="上级节点" class="parent-info">
                     <div class="parent-info-content">
                         <div class="parent-item">
                             <span class="label">名称:</span>
@@ -33,11 +20,7 @@
 
                 <!-- 字典类型 -->
                 <el-form-item label="字典类型" prop="dictType">
-                    <el-select
-                        v-model="formData.dictType"
-                        placeholder="请选择字典类型"
-                        :disabled="!!parentId"
-                    >
+                    <el-select v-model="formData.dictType" placeholder="请选择字典类型" :disabled="!!parentId">
                         <el-option label="系统字典" value="SYSTEM" />
                         <el-option label="业务字典" value="BUSINESS" />
                     </el-select>
@@ -45,27 +28,17 @@
 
                 <!-- 字典名称 -->
                 <el-form-item label="字典名称" prop="dictName">
-                    <el-input
-                        v-model="formData.dictName"
-                        placeholder="请输入字典名称"
-                    />
+                    <el-input v-model="formData.dictName" placeholder="请输入字典名称" />
                 </el-form-item>
 
                 <!-- 字典编码 -->
                 <el-form-item label="字典编码" prop="dictCode">
-                    <el-input
-                        v-model="formData.dictCode"
-                        placeholder="请输入字典编码"
-                        :maxlength="50"
-                    />
+                    <el-input v-model="formData.dictCode" placeholder="请输入字典编码" :maxlength="50" />
                 </el-form-item>
 
                 <!-- 字典值 -->
                 <el-form-item label="字典值" prop="dictValue">
-                    <el-input
-                        v-model="formData.dictValue"
-                        placeholder="请输入字典值"
-                    />
+                    <el-input v-model="formData.dictValue" placeholder="请输入字典值" />
                     <div class="form-item-tip">
                         该字段可选，用于存储实际业务值
                     </div>
@@ -73,12 +46,7 @@
 
                 <!-- 排序 -->
                 <el-form-item label="排序" prop="dictOrder">
-                    <el-input-number
-                        v-model="formData.dictOrder"
-                        :min="0"
-                        :max="9999"
-                        placeholder="请输入排序值"
-                    />
+                    <el-input-number v-model="formData.dictOrder" :min="0" :max="9999" placeholder="请输入排序值" />
                     <div class="form-item-tip">数值越小排序越靠前</div>
                 </el-form-item>
 
@@ -92,21 +60,13 @@
 
                 <!-- 描述 -->
                 <el-form-item label="描述" prop="dictDesc">
-                    <el-input
-                        type="textarea"
-                        v-model="formData.dictDesc"
-                        placeholder="请输入描述"
-                        :maxlength="200"
-                        :rows="4"
-                        show-word-limit
-                    />
+                    <el-input type="textarea" v-model="formData.dictDesc" placeholder="请输入描述" :maxlength="200" :rows="4"
+                        show-word-limit />
                 </el-form-item>
 
                 <!-- 按钮组 -->
                 <el-form-item>
-                    <el-button type="primary" @click="submitForm"
-                        >保存</el-button
-                    >
+                    <el-button type="primary" @click="submitForm">保存</el-button>
                     <el-button @click="resetForm">重置</el-button>
                     <el-button @click="goBack">取消</el-button>
                 </el-form-item>
@@ -193,11 +153,11 @@ const submitForm = async () => {
 
         const response = await request.post("/api/Dictionary", formData);
 
-        if (response.data && response.data.success) {
+        if (response.success) {
             common.showMessage("添加成功", "success");
 
             // 获取新增节点的信息
-            const newNode = response.data.data;
+            const newNode = response.data;
 
             // 确保数据有效
             if (newNode && newNode.dictId) {
@@ -211,7 +171,7 @@ const submitForm = async () => {
             // 跳转回列表页面
             router.push("/main/dictionary-list");
         } else {
-            common.showMessage(response.data.message || "添加失败", "error");
+            common.showMessage(response.message || "添加失败", "error");
         }
     } catch (error) {
         console.error("表单提交失败", error);

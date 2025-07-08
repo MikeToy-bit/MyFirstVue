@@ -3,12 +3,13 @@ import login from "../views/login.vue";
 import Main from "../views/main.vue";
 import Dashboard from "../views/dashboard.vue";
 import Users from "../views/user/user-list.vue";
-import UserAdd from "../views/user/user-add.vue";
+import UserAdd from "../views/user/user-add1.vue";
 import Settings from "../views/settings.vue";
 import Security from "../views/security.vue";
 import CommonDemo from "../views/examples/common-demo.vue";
 import DictionaryList from "../views/dictionary/dictionary-list.vue";
 import DictionaryAdd from "../views/dictionary/dictionary-add.vue";
+import orgList from "../views/org/org-list.vue";
 import { useUserStore } from "../stores/user";
 import { ElMessage } from "element-plus";
 
@@ -41,6 +42,11 @@ const routes = [
                 path: "dashboard",
                 name: "dashboard",
                 component: Dashboard,
+            },
+            {
+                path: "org-list",
+                name: "org-list",
+                component: orgList,
             },
             {
                 path: "user-list",

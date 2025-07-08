@@ -3,46 +3,36 @@
         <el-container>
             <el-aside :width="isCollapse ? '64px' : '200px'">
                 <div class="logo">
-                    <el-icon size="30" color="#409EFF"><House /></el-icon>
+                    <el-icon size="30" color="#409EFF">
+                        <House />
+                    </el-icon>
                     <span v-show="!isCollapse">管理系统</span>
                 </div>
-                <el-menu
-                    :default-active="activeMenu"
-                    class="el-menu-vertical"
-                    :collapse="isCollapse"
-                    background-color="#304156"
-                    text-color="#bfcbd9"
-                    active-text-color="#409EFF"
-                    @select="handleMenuSelect"
-                >
+                <el-menu :default-active="activeMenu" class="el-menu-vertical" :collapse="isCollapse"
+                    background-color="#304156" text-color="#bfcbd9" active-text-color="#409EFF"
+                    @select="handleMenuSelect">
                     <!-- 动态渲染菜单 -->
                     <template v-for="menu in dynamicMenus" :key="menu.id">
                         <!-- 没有子菜单的情况 -->
-                        <el-menu-item
-                            v-if="menu.children.length === 0"
-                            :index="'/main' + menu.path"
-                        >
-                            <el-icon
-                                ><component :is="getMenuIcon(menu)"
-                            /></el-icon>
+                        <el-menu-item v-if="menu.children.length === 0" :index="'/main' + menu.path">
+                            <el-icon>
+                                <component :is="getMenuIcon(menu)" />
+                            </el-icon>
                             <template #title>{{ menu.title }}</template>
                         </el-menu-item>
 
                         <!-- 有子菜单的情况 -->
                         <el-sub-menu v-else :index="menu.id">
                             <template #title>
-                                <el-icon
-                                    ><component :is="getMenuIcon(menu)"
-                                /></el-icon>
+                                <el-icon>
+                                    <component :is="getMenuIcon(menu)" />
+                                </el-icon>
                                 <span>{{ menu.title }}</span>
                             </template>
 
                             <!-- 子菜单项 -->
-                            <el-menu-item
-                                v-for="subMenu in menu.children"
-                                :key="subMenu.id"
-                                :index="'/main' + subMenu.path"
-                            >
+                            <el-menu-item v-for="subMenu in menu.children" :key="subMenu.id"
+                                :index="'/main' + subMenu.path">
                                 {{ subMenu.title }}
                             </el-menu-item>
                         </el-sub-menu>
@@ -65,28 +55,16 @@
                             </span>
                             <template #dropdown>
                                 <el-dropdown-menu>
-                                    <el-dropdown-item @click="handleLogout"
-                                        >退出登录</el-dropdown-item
-                                    >
+                                    <el-dropdown-item @click="handleLogout">退出登录</el-dropdown-item>
                                 </el-dropdown-menu>
                             </template>
                         </el-dropdown>
                     </div>
                 </el-header>
                 <el-main>
-                    <el-tabs
-                        v-model="activeTab"
-                        type="card"
-                        closable
-                        @tab-remove="removeTab"
-                        @tab-click="handleTabClick"
-                    >
-                        <el-tab-pane
-                            v-for="item in tabs"
-                            :key="item.path"
-                            :label="item.title"
-                            :name="item.path"
-                        >
+                    <el-tabs v-model="activeTab" type="card" closable @tab-remove="removeTab"
+                        @tab-click="handleTabClick">
+                        <el-tab-pane v-for="item in tabs" :key="item.path" :label="item.title" :name="item.path">
                             <router-view v-slot="{ Component }">
                                 <keep-alive>
                                     <component :is="Component" />
@@ -130,7 +108,7 @@ watch(
         if (newPath !== oldPath) {
             // 路由变化完成，延迟隐藏页面loading，确保有足够的显示时间
             setTimeout(() => {
-                hidePageLoading(true);
+                //hidePageLoading(true);
             }, 500); // 增加到500ms，确保loading有足够的显示时间
         }
     }
@@ -201,7 +179,7 @@ const removeTab = (targetName) => {
 
     if (targetName === route.path) {
         // 显示页面级loading
-        showPageLoading();
+        //showPageLoading();
 
         // 稍微延迟路由跳转，确保loading先显示
         setTimeout(() => {
@@ -216,7 +194,7 @@ const handleTabClick = (tab) => {
     // 只有当路径和当前路由不同时才显示loading和跳转
     if (path !== route.path) {
         // 显示页面级loading
-        showPageLoading();
+        //showPageLoading();
 
         // 稍微延迟路由跳转，确保loading先显示
         setTimeout(() => {
@@ -268,7 +246,7 @@ const handleMenuSelect = (index) => {
         addTab(menuItem.title, index);
         // 只有当路径和当前路由不同时才显示loading
         if (index !== route.path) {
-            showPageLoading();
+            //showPageLoading();
         }
         router.push(index);
     } else {

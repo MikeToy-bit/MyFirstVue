@@ -10,7 +10,7 @@ import { showMessage, showPageLoading, hidePageLoading } from "./common";
 
 // 创建 axios 实例
 const request = axios.create({
-    baseURL: import.meta.env.VITE_BASE_API || "",
+    baseURL: import.meta.env.VITE_API_BASE_URL || "",
     timeout: 30000,
     headers: {
         "Content-Type": "application/json;charset=UTF-8",
@@ -278,7 +278,7 @@ request.interceptors.response.use(
         const { data } = response;
         if (data && typeof data.statusCode !== "undefined") {
             if (data.statusCode === 200) {
-                return response;
+                return response.data;
             } else {
                 // 处理业务错误
                 const errMsg = data.message || "请求失败";
@@ -288,7 +288,7 @@ request.interceptors.response.use(
             }
         }
 
-        return response;
+        return response.data;
     },
     async (error) => {
         hidePageLoading();
@@ -302,7 +302,6 @@ request.interceptors.response.use(
                     // 未授权，尝试刷新token
                     if (!error.config._retry) {
                         error.config._retry = true;
-
                         try {
                             const newToken = await refreshToken();
                             error.config.headers.Authorization = `Bearer ${newToken}`;

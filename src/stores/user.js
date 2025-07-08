@@ -67,8 +67,8 @@ export const useUserStore = defineStore("user", () => {
             const response = await request.post("/api/auth/login", formData);
 
             console.log("登录响应", response);
-            if (response.data.statusCode === 200) {
-                const { accessToken, refreshToken } = response.data.data;
+            if (response.success) {
+                const { accessToken, refreshToken } = response.data;
                 localStorage.setItem("access_token", accessToken);
                 localStorage.setItem("refresh_token", refreshToken);
 
@@ -174,12 +174,9 @@ export const useUserStore = defineStore("user", () => {
             console.log("菜单响应:", response);
 
             // 根据返回的状态码处理数据
-            if (
-                (response.data && response.data.code === 200) ||
-                (response.data && response.data.statusCode === 200)
-            ) {
+            if (response.success) {
                 // 获取菜单数据
-                const rawMenuList = response.data.data || [];
+                const rawMenuList = response.data || [];
                 console.log("原始菜单数据:", rawMenuList);
 
                 // 处理菜单数据，转换为应用所需格式

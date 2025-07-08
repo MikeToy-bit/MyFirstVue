@@ -733,6 +733,13 @@ export const emergencyFixLoading = () => {
     });
 };
 
+/**
+ * 获取 token
+ */
+export const getToken = () => {
+    return localStorage.getItem("access_token");
+};
+
 // 将紧急修复工具挂载到window对象，方便调试
 if (typeof window !== "undefined") {
     window.emergencyFixLoading = emergencyFixLoading;
@@ -763,4 +770,645 @@ export default {
     isEmpty,
     getLoadingStatus,
     emergencyFixLoading,
+    getToken,
 };
+
+// =============== 表格管理系统 ===============
+
+/**
+ * 表格管理器类
+ * 统一管理表格的数据获取、分页、加载状态等功能
+ */
+class TableManager {
+    constructor(config = {}) {
+        this.config = {
+            // API相关配置
+            apiFunction: config.apiFunction || null, // API函数
+            apiParams: config.apiParams || {}, // API默认参数
+
+            // 分页配置
+            pageIndex: config.pageIndex || 1,
+            pageSize: config.pageSize || 10,
+            pageSizes: config.pageSizes || [10, 20, 50, 100],
+
+            // 选择模式配置
+            selectionMode: config.selectionMode || "single", // 'single', 'multiple', 'none'
+
+            // 数据处理配置
+            dataField: config.dataField || "data.dataInfo", // 数据字段路径
+            totalField: config.totalField || "data.totalCount", // 总数字段路径
+
+            // 加载配置
+            loadingKey: config.loadingKey || "tableLoading",
+            autoLoad: config.autoLoad !== false, // 是否自动加载
+
+            // 其他配置
+            showMessage: config.showMessage !== false, // 是否显示消息
+            ...config,
+        };
+
+        // 状态管理
+        this.state = {
+            loading: false,
+            data: [],
+            total: 0,
+            currentPage: this.config.pageIndex,
+            pageSize: this.config.pageSize,
+            selectedRows: [],
+            searchParams: {},
+        };
+
+        // 事件回调
+        this.callbacks = {
+            onDataLoad: config.onDataLoad || null,
+            onError: config.onError || null,
+            onSelectionChange: config.onSelectionChange || null,
+            beforeLoad: config.beforeLoad || null,
+            afterLoad: config.afterLoad || null,
+        };
+
+        // 自动加载
+        if (this.config.autoLoad && this.config.apiFunction) {
+            this.loadData();
+        }
+    }
+
+    /**
+     * 设置API函数
+     * @param {Function} apiFunction API函数
+     * @param {Object} defaultParams 默认参数
+     */
+    setApiFunction(apiFunction, defaultParams = {}) {
+        this.config.apiFunction = apiFunction;
+        this.config.apiParams = { ...this.config.apiParams, ...defaultParams };
+        return this;
+    }
+
+    /**
+     * 获取嵌套对象的值
+     * @param {Object} obj 对象
+     * @param {string} path 路径，如 'data.items'
+     * @param {*} defaultVal 默认值
+     */
+    getNestedValue(obj, path, defaultVal = null) {
+        if (!path) return obj;
+        return path.split(".").reduce((current, key) => {
+            return current && current[key] !== undefined
+                ? current[key]
+                : defaultVal;
+        }, obj);
+    }
+
+    /**
+     * 构建查询参数
+     * @param {Object} extraParams 额外参数
+     */
+    buildQueryParams(extraParams = {}) {
+        return {
+            ...this.config.apiParams,
+            ...this.state.searchParams,
+            pageIndex: this.state.currentPage,
+            pageSize: this.state.pageSize,
+            ...extraParams,
+        };
+    }
+
+    /**
+     * 加载数据
+     * @param {Object} params 查询参数
+     * @param {boolean} resetPage 是否重置页码
+     */
+    async loadData(params = {}, resetPage = false) {
+        if (!this.config.apiFunction) {
+            console.warn("TableManager: API函数未设置");
+            return;
+        }
+
+        try {
+            // 重置页码
+            if (resetPage) {
+                this.state.currentPage = 1;
+            }
+
+            // 执行前置回调
+            if (this.callbacks.beforeLoad) {
+                const result = await this.callbacks.beforeLoad(params);
+                if (result === false) return; // 如果返回false，取消加载
+            }
+
+            // 显示加载状态
+            this.setLoading(true);
+
+            // 构建查询参数
+            const queryParams = this.buildQueryParams(params);
+
+            console.log("TableManager: 开始加载数据", queryParams);
+
+            // 调用API
+            const apiResponse = await this.config.apiFunction(queryParams);
+
+            let response = null;
+            if (apiResponse && apiResponse.data) {
+                response = apiResponse.data;
+            } else if (apiResponse) {
+                // 兼容直接返回响应数据的情况
+                response = apiResponse;
+            }
+
+            console.log("TableManager: API响应", response);
+
+            if (response && response.success) {
+                // 提取数据
+                const data = this.getNestedValue(
+                    response,
+                    this.config.dataField,
+                    []
+                );
+                const total = this.getNestedValue(
+                    response,
+                    this.config.totalField,
+                    0
+                );
+
+                // 更新状态
+                this.state.data = Array.isArray(data) ? data : [];
+                this.state.total = typeof total === "number" ? total : 0;
+
+                console.log("TableManager: 数据加载成功", {
+                    count: this.state.data.length,
+                    total: this.state.total,
+                });
+
+                // 执行数据加载回调
+                if (this.callbacks.onDataLoad) {
+                    this.callbacks.onDataLoad(
+                        this.state.data,
+                        this.state.total
+                    );
+                }
+
+                // 执行后置回调
+                if (this.callbacks.afterLoad) {
+                    this.callbacks.afterLoad(this.state.data, this.state.total);
+                }
+            } else {
+                const errorMsg = response?.message || "数据加载失败";
+                console.error("TableManager: API响应错误", errorMsg);
+
+                if (this.config.showMessage) {
+                    showMessage(errorMsg, "error");
+                }
+
+                if (this.callbacks.onError) {
+                    this.callbacks.onError(new Error(errorMsg));
+                }
+            }
+        } catch (error) {
+            console.error("TableManager: 数据加载异常", error);
+
+            if (this.config.showMessage) {
+                showMessage("数据加载失败，请稍后重试", "error");
+            }
+
+            if (this.callbacks.onError) {
+                this.callbacks.onError(error);
+            }
+        } finally {
+            this.setLoading(false);
+        }
+    }
+
+    /**
+     * 设置加载状态
+     * @param {boolean} loading 加载状态
+     */
+    setLoading(loading) {
+        this.state.loading = loading;
+
+        // 移除全屏loading，只管理状态，UI层面的loading由组件自己控制
+        // 例如：CommonTable组件使用el-table的v-loading指令
+        console.log("TableManager loading状态变更:", loading);
+    }
+
+    /**
+     * 搜索数据
+     * @param {Object} searchParams 搜索参数
+     */
+    search(searchParams = {}) {
+        this.state.searchParams = { ...searchParams };
+        return this.loadData({}, true); // 重置页码
+    }
+
+    /**
+     * 重置搜索
+     */
+    resetSearch() {
+        this.state.searchParams = {};
+        this.state.currentPage = 1;
+        return this.loadData();
+    }
+
+    /**
+     * 刷新数据（保持当前页码和搜索条件）
+     */
+    refresh() {
+        return this.loadData();
+    }
+
+    /**
+     * 改变页码
+     * @param {number} page 页码
+     */
+    changePage(page) {
+        this.state.currentPage = page;
+        return this.loadData();
+    }
+
+    /**
+     * 改变每页大小
+     * @param {number} size 每页大小
+     */
+    changePageSize(size) {
+        this.state.pageSize = size;
+        this.state.currentPage = 1; // 重置到第一页
+        return this.loadData();
+    }
+
+    /**
+     * 处理选择变化
+     * @param {Array} selection 选中的行
+     */
+    handleSelectionChange(selection) {
+        this.state.selectedRows = selection || [];
+
+        console.log("TableManager: 选择变化", {
+            mode: this.config.selectionMode,
+            count: this.state.selectedRows.length,
+        });
+
+        // 单选模式限制
+        if (
+            this.config.selectionMode === "single" &&
+            this.state.selectedRows.length > 1
+        ) {
+            this.state.selectedRows = [
+                this.state.selectedRows[this.state.selectedRows.length - 1],
+            ];
+        }
+
+        if (this.callbacks.onSelectionChange) {
+            this.callbacks.onSelectionChange(this.state.selectedRows);
+        }
+    }
+
+    /**
+     * 获取选中的行
+     */
+    getSelectedRows() {
+        return this.state.selectedRows;
+    }
+
+    /**
+     * 获取选中行的ID（假设每行有id字段）
+     * @param {string} idField ID字段名，默认为'id'
+     */
+    getSelectedIds(idField = "id") {
+        return this.state.selectedRows.map((row) => row[idField]);
+    }
+
+    /**
+     * 清空选择
+     */
+    clearSelection() {
+        this.state.selectedRows = [];
+        if (this.callbacks.onSelectionChange) {
+            this.callbacks.onSelectionChange([]);
+        }
+    }
+
+    /**
+     * 获取表格数据
+     */
+    getData() {
+        return this.state.data;
+    }
+
+    /**
+     * 获取分页信息
+     */
+    getPagination() {
+        return {
+            currentPage: this.state.currentPage,
+            pageSize: this.state.pageSize,
+            total: this.state.total,
+            pageSizes: this.config.pageSizes,
+        };
+    }
+
+    /**
+     * 获取加载状态
+     */
+    getLoading() {
+        return this.state.loading;
+    }
+
+    /**
+     * 获取完整状态
+     */
+    getState() {
+        return {
+            ...this.state,
+            pagination: this.getPagination(),
+        };
+    }
+
+    /**
+     * 销毁表格管理器
+     */
+    destroy() {
+        this.setLoading(false);
+        this.clearSelection();
+        this.state = {
+            loading: false,
+            data: [],
+            total: 0,
+            currentPage: 1,
+            pageSize: 10,
+            selectedRows: [],
+            searchParams: {},
+        };
+    }
+}
+
+/**
+ * 创建表格管理器
+ * @param {Object} config 配置选项
+ * @returns {TableManager} 表格管理器实例
+ */
+export const createTableManager = (config = {}) => {
+    return new TableManager(config);
+};
+
+/**
+ * Vue 3 组合式API的表格管理Hook
+ * @param {Object} config 配置选项
+ * @returns {Object} 表格管理相关的响应式数据和方法
+ */
+export const useTableManager = (config = {}) => {
+    const tableManager = new TableManager(config);
+
+    // 导入Vue的响应式API
+    const { ref, reactive, computed } = require("vue");
+
+    // 响应式状态
+    const tableData = ref([]);
+    const loading = ref(false);
+    const selectedRows = ref([]);
+    const pagination = reactive({
+        currentPage: config.pageIndex || 1,
+        pageSize: config.pageSize || 10,
+        total: 0,
+        pageSizes: config.pageSizes || [10, 20, 50, 100],
+    });
+
+    // 更新响应式状态
+    const updateReactiveState = () => {
+        const state = tableManager.getState();
+        tableData.value = state.data;
+        loading.value = state.loading;
+        selectedRows.value = state.selectedRows;
+
+        pagination.currentPage = state.pagination.currentPage;
+        pagination.pageSize = state.pagination.pageSize;
+        pagination.total = state.pagination.total;
+    };
+
+    // 设置回调来同步状态
+    tableManager.callbacks.onDataLoad = () => updateReactiveState();
+    tableManager.callbacks.onSelectionChange = () => updateReactiveState();
+
+    // 重写方法以同步状态
+    const originalSetLoading = tableManager.setLoading.bind(tableManager);
+    tableManager.setLoading = (loadingState) => {
+        originalSetLoading(loadingState);
+        loading.value = loadingState;
+    };
+
+    // 计算属性
+    const hasSelection = computed(() => selectedRows.value.length > 0);
+    const isMultipleSelection = computed(
+        () => config.selectionMode === "multiple"
+    );
+    const isSingleSelection = computed(() => config.selectionMode === "single");
+
+    // 方法
+    const loadData = (params, resetPage) => {
+        return tableManager
+            .loadData(params, resetPage)
+            .then(updateReactiveState);
+    };
+
+    const search = (searchParams) => {
+        return tableManager.search(searchParams).then(updateReactiveState);
+    };
+
+    const refresh = () => {
+        return tableManager.refresh().then(updateReactiveState);
+    };
+
+    const resetSearch = () => {
+        return tableManager.resetSearch().then(updateReactiveState);
+    };
+
+    const handleCurrentChange = (page) => {
+        return tableManager.changePage(page).then(updateReactiveState);
+    };
+
+    const handleSizeChange = (size) => {
+        return tableManager.changePageSize(size).then(updateReactiveState);
+    };
+
+    const handleSelectionChange = (selection) => {
+        tableManager.handleSelectionChange(selection);
+        updateReactiveState();
+    };
+
+    return {
+        // 响应式数据
+        tableData,
+        loading,
+        selectedRows,
+        pagination,
+
+        // 计算属性
+        hasSelection,
+        isMultipleSelection,
+        isSingleSelection,
+
+        // 方法
+        loadData,
+        search,
+        refresh,
+        resetSearch,
+        handleCurrentChange,
+        handleSizeChange,
+        handleSelectionChange,
+
+        // 获取方法
+        getSelectedRows: () => tableManager.getSelectedRows(),
+        getSelectedIds: (idField) => tableManager.getSelectedIds(idField),
+        clearSelection: () => {
+            tableManager.clearSelection();
+            updateReactiveState();
+        },
+
+        // 原始管理器
+        tableManager,
+    };
+};
+
+/**
+ * 表格配置预设
+ */
+export const tablePresets = {
+    // 标准列表表格
+    standardList: {
+        pageSize: 10,
+        pageSizes: [10, 20, 50, 100],
+        selectionMode: "multiple",
+        showMessage: true,
+        autoLoad: true,
+    },
+
+    // 选择器表格
+    selector: {
+        pageSize: 5,
+        pageSizes: [5, 10, 20],
+        selectionMode: "single",
+        showMessage: false,
+        autoLoad: true,
+    },
+
+    // 大数据表格
+    bigData: {
+        pageSize: 50,
+        pageSizes: [50, 100, 200, 500],
+        selectionMode: "multiple",
+        showMessage: true,
+        autoLoad: false,
+    },
+
+    // 只读表格
+    readonly: {
+        pageSize: 20,
+        pageSizes: [20, 50, 100],
+        selectionMode: "none",
+        showMessage: true,
+        autoLoad: true,
+    },
+};
+
+/**
+ * 创建预设表格管理器
+ * @param {string} presetName 预设名称
+ * @param {Object} customConfig 自定义配置
+ * @returns {TableManager} 表格管理器实例
+ */
+export const createPresetTableManager = (presetName, customConfig = {}) => {
+    const preset = tablePresets[presetName];
+    if (!preset) {
+        console.warn(`未找到预设配置: ${presetName}`);
+        return createTableManager(customConfig);
+    }
+
+    return createTableManager({
+        ...preset,
+        ...customConfig,
+    });
+};
+
+/**
+ * 表格工具函数
+ */
+export const tableHelpers = {
+    /**
+     * 格式化表格数据
+     * @param {Array} data 原始数据
+     * @param {Object} formatters 格式化器映射
+     */
+    formatTableData: (data, formatters = {}) => {
+        if (!Array.isArray(data)) return [];
+
+        return data.map((row) => {
+            const formattedRow = { ...row };
+
+            Object.keys(formatters).forEach((key) => {
+                if (row[key] !== undefined) {
+                    const formatter = formatters[key];
+                    if (typeof formatter === "function") {
+                        formattedRow[key] = formatter(row[key], row);
+                    }
+                }
+            });
+
+            return formattedRow;
+        });
+    },
+
+    /**
+     * 生成表格列配置
+     * @param {Array} columns 列配置数组
+     */
+    generateColumns: (columns = []) => {
+        return columns.map((col) => ({
+            prop: col.prop || col.key,
+            label: col.label || col.title,
+            width: col.width,
+            minWidth: col.minWidth || 100,
+            fixed: col.fixed,
+            sortable: col.sortable || false,
+            formatter: col.formatter,
+            ...col,
+        }));
+    },
+
+    /**
+     * 导出表格数据
+     * @param {Array} data 表格数据
+     * @param {Array} columns 列配置
+     * @param {string} filename 文件名
+     */
+    exportTableData: (data, columns, filename = "table-data.csv") => {
+        if (!Array.isArray(data) || data.length === 0) {
+            showMessage("没有数据可导出", "warning");
+            return;
+        }
+
+        // 生成CSV内容
+        const headers = columns.map((col) => col.label || col.prop).join(",");
+        const rows = data.map((row) =>
+            columns
+                .map((col) => {
+                    const value = row[col.prop] || "";
+                    return `"${String(value).replace(/"/g, '""')}"`;
+                })
+                .join(",")
+        );
+
+        const csvContent = [headers, ...rows].join("\n");
+
+        // 创建下载链接
+        const blob = new Blob(["\ufeff" + csvContent], {
+            type: "text/csv;charset=utf-8;",
+        });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = filename;
+        link.click();
+
+        showMessage("导出成功", "success");
+    },
+};
+
+// 导出默认表格管理器实例（用于简单场景）
+export const defaultTableManager = createTableManager();

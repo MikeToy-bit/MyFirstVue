@@ -7,6 +7,7 @@ import * as ElementPlusIconsVue from "@element-plus/icons-vue";
 import axios from "axios";
 import router from "./router";
 import "./style.css";
+import "./assets/styles/global.css";
 import { useUserStore } from "./stores/user";
 import CommonPlugin from "./plugins/common";
 import "./utils/common";
